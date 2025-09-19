@@ -464,9 +464,11 @@ void MaterialView(Material*& material) {
         if (material_path_c != nullptr) {
           std::string material_path = std::string(material_path_c);
           io::FreeMaterial(material);
-          material = io::LoadMaterial(material_path + "/diffuse.png",
-                                      material_path + "/specular.png", material_path + "/vert.glsl",
-                                      material_path + "/frag.glsl", DEFAULT_SHININESS);
+          auto base_path = std::filesystem::path(material_path);
+          material = io::LoadMaterial((base_path / "diffuse.png").string(),
+                                      (base_path / "specular.png").string(),
+                                      (base_path / "vert.glsl").string(),
+                                      (base_path / "frag.glsl").string(), DEFAULT_SHININESS);
           g_material_diffuse = material->diffuse_->path_;
           g_material_specular = material->specular_->path_;
           g_material_vertex = material->shader_->vertex_path_;

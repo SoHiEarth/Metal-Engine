@@ -260,23 +260,23 @@ void render::RenderTexture(const Material* material, const glm::vec3& pos, const
 
   material->shader_->SetInt("NUM_DIRECTIONAL_LIGHTS",
                             static_cast<int>(g_directional_lights.size()));
-  for (int i = 0; i < g_directional_lights.size(); i++) {
+  for (std::size_t i = 0; i < g_directional_lights.size(); i++) {
     if (g_directional_lights[i] != nullptr) {
-      g_directional_lights[i]->SetUniforms(material->shader_, i);
+      g_directional_lights[i]->SetUniforms(material->shader_, static_cast<int>(i));
     }
   }
 
   material->shader_->SetInt("NUM_POINT_LIGHTS", static_cast<int>(g_point_lights.size()));
-  for (int i = 0; i < g_point_lights.size(); i++) {
+  for (std::size_t i = 0; i < g_point_lights.size(); i++) {
     if (g_point_lights[i] != nullptr) {
-      g_point_lights[i]->SetUniforms(material->shader_, i);
+      g_point_lights[i]->SetUniforms(material->shader_, static_cast<int>(i));
     }
   }
 
   material->shader_->SetInt("NUM_SPOT_LIGHTS", static_cast<int>(g_spot_lights.size()));
-  for (int i = 0; i < g_spot_lights.size(); i++) {
+  for (std::size_t i = 0; i < g_spot_lights.size(); i++) {
     if (g_spot_lights[i] != nullptr) {
-      g_spot_lights[i]->SetUniforms(material->shader_, i);
+      g_spot_lights[i]->SetUniforms(material->shader_, static_cast<int>(i));
     }
   }
 
