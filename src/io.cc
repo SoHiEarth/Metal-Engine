@@ -60,7 +60,8 @@ void io::Init() {
           std::filesystem::create_directory("engine_assets");
         }
         for (const auto& entry : std::filesystem::directory_iterator(g_engine_directory)) {
-          std::filesystem::copy(entry.path(), "engine_assets/" + entry.path().filename().string(),
+          auto destination = std::filesystem::path("engine_assets") / entry.path().filename();
+          std::filesystem::copy(entry.path(), destination,
                                 std::filesystem::copy_options::overwrite_existing);
         }
       }
@@ -82,7 +83,7 @@ void io::Init() {
     debug::Throw(std::format("Requested file does not exist. {}", path));
   }
   pugi::xml_document doc;
-  pugi::xml_parse_result result = doc.load_file(path.data());
+  pugi::xml_parse_result result = doc.load_file(std::string(path).c_str());
   if (!result) {
     debug::Throw(std::format("Failed to load level file. {}, {}", path, result.description()));
   }
@@ -123,7 +124,7 @@ void io::serialized::SaveLevel(const Level* level, std::string_view path) {
     object_node.append_attribute("type") = object->GetTypeName();
     object->Save(object_node);
   }
-  bool save_result = doc.save_file(path.data());
+  bool save_result = doc.save_file(std::string(path).c_str());
   if (!save_result) {
     debug::Throw(std::format("Failed to save level file. {}", path));
   }
@@ -224,7 +225,7 @@ void io::FreeShader(Shader*& shader) {
   glGenTextures(1, &texture->id_);
   stbi_set_flip_vertically_on_load(1);
   unsigned char* data =
-      stbi_load(path.data(), &texture->width_, &texture->height_, &texture->channels_, 0);
+      stbi_load(std::string(path).c_str(), &texture->width_, &texture->height_, &texture->channels_, 0);
   if (data == nullptr) {
     delete texture;
     texture = nullptr;
@@ -442,7 +443,7 @@ std::string ReadFile(std::string_view path) {
   std::ifstream file;
   file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
   try {
-    file.open(path.data());
+    file.open(std::string(path));
     std::stringstream stream;
     stream << file.rdbuf();
     file.close();
@@ -457,7 +458,9 @@ std::string ReadFile(std::string_view path) {
   if (code.empty()) {
     debug::Throw("Got empty code.");
   }
-  const char* code_data = code.data();
+  // Ensure null-terminated string for OpenGL
+  std::string code_str(code);
+  const char* code_data = code_str.c_str();
   unsigned int shader;
   int success;
   std::array<char, kLogSize> log;

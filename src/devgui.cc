@@ -5,6 +5,7 @@
 #include <imgui_stdlib.h>
 #include <tinyfiledialogs/tinyfiledialogs.h>
 #include <array>
+#include <filesystem>
 #include <format>
 #include <vector>
 #include <map>
@@ -72,8 +73,9 @@ void dev::Init() {
   style.ScrollbarRounding = DEVGUI_ROUNDING_LESS;
   style.GrabRounding = DEVGUI_ROUNDING_LESS;
   style.TabRounding = DEVGUI_ROUNDING_LESS;
+  auto font_path = std::filesystem::path(io::g_engine_directory) / "IBM_Plex_Sans" / "IBMPlexSans-VariableFont_wdth,wght.ttf";
   ImFont* ui_font = imgui_io.Fonts->AddFontFromFileTTF(
-      (io::g_engine_directory + "/IBM_Plex_Sans/IBMPlexSans-VariableFont_wdth,wght.ttf").c_str(),
+      font_path.string().c_str(),
       DEVGUI_FONT_SIZE, nullptr, imgui_io.Fonts->GetGlyphRangesDefault());
   ImGui_ImplGlfw_InitForOpenGL(render::g_window, true);
   ImGui_ImplOpenGL3_Init("#version 150");

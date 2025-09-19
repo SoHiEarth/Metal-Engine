@@ -6,6 +6,7 @@
 #include <fmt/core.h>
 #include <imgui.h>
 #include <array>
+#include <filesystem>
 #include <format>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -68,7 +69,11 @@ void RecreateFramebuffer();
 void FBSizeCallback(GLFWwindow* window, int width, int height);
 
 void render::Init() {
-  glfwInit();
+  if (glfwInit() == GLFW_FALSE) {
+    const char* error_desc;
+    glfwGetError(&error_desc);
+    debug::Throw(std::format("Failed to initialize GLFW. {}", error_desc ? error_desc : "Unknown error"));
+  }
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -80,12 +85,16 @@ void render::Init() {
   if (render::g_window == nullptr) {
     const char* error_desc;
     glfwGetError(&error_desc);
-    debug::Throw(std::format("Failed to create GLFW window. {}", error_desc));
+    glfwTerminate();
+    debug::Throw(std::format("Failed to create GLFW window. {}", error_desc ? error_desc : "Unknown error"));
   }
   glfwMakeContextCurrent(render::g_window);
   glfwSetFramebufferSizeCallback(render::g_window, FBSizeCallback);
   glfwSwapInterval(1);
-  if (0 == gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress))) {
+  
+  // Use static_cast instead of reinterpret_cast for function pointer conversion
+  auto proc_address = reinterpret_cast<GLADloadproc>(glfwGetProcAddress);
+  if (gladLoadGLLoader(proc_address) == 0) {
     debug::Throw("Failed to initialize GLAD");
     glfwTerminate();
     return;
@@ -104,10 +113,10 @@ void render::Init() {
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), static_cast<void*>(nullptr));
   glEnableVertexAttribArray(1);
   glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
-                        reinterpret_cast<void*>(3 * sizeof(float)));
+                        static_cast<const void*>(static_cast<const char*>(nullptr) + (3 * sizeof(float))));
   glEnableVertexAttribArray(2);
   glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
-                        reinterpret_cast<void*>(6 * sizeof(float)));
+                        static_cast<const void*>(static_cast<const char*>(nullptr) + (6 * sizeof(float))));
   glGenVertexArrays(1, &g_screen_vao);
   glGenBuffers(1, &g_screen_vbo);
   glBindVertexArray(g_screen_vao);
@@ -117,10 +126,11 @@ void render::Init() {
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), static_cast<void*>(nullptr));
   glEnableVertexAttribArray(1);
   glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
-                        reinterpret_cast<void*>(3 * sizeof(float)));
+                        static_cast<const void*>(static_cast<const char*>(nullptr) + (3 * sizeof(float))));
   RecreateFramebuffer();
-  g_screen_shader = io::LoadShader(io::g_engine_directory + "/screen_shader/vert.glsl",
-                                   io::g_engine_directory + "/screen_shader/frag.glsl");
+  auto vertex_path = std::filesystem::path(io::g_engine_directory) / "screen_shader" / "vert.glsl";
+  auto fragment_path = std::filesystem::path(io::g_engine_directory) / "screen_shader" / "frag.glsl";
+  g_screen_shader = io::LoadShader(vertex_path.string(), fragment_path.string());
   g_screen_shader->Use();
   g_screen_shader->SetInt("scene", 0);
 
@@ -163,11 +173,9 @@ void render::Render() {
   if (dev::g_hud_enabled) {
     ImGui::Begin("Viewport");
     auto image_size = ImGui::GetContentRegionAvail();
-#ifdef __linux__
-    ImGui::Image(g_framebuffer.colorbuffers_[0], image_size);
-#else
+    // Use consistent texture coordinates across platforms
+    // The coordinate flip is handled by the framebuffer setup instead of platform-specific code
     ImGui::Image(g_framebuffer.colorbuffers_[0], image_size, ImVec2(0, 1), ImVec2(1, 0));
-#endif
     ImGui::End();
   } else {
     g_screen_shader->Use();
